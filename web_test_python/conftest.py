@@ -41,7 +41,7 @@ def pytest_addoption(parser):
                      type=str,
                      help='Пароль от админки Opencart')
     parser.addoption("--no_selenoid", action="store_true", default=False)
-    parser.addoption("--executor", action="store", default="localhost")
+    parser.addoption("--executor", action="store", default="selenoid")
     parser.addoption("--vnc", action="store_true", default=False)
     parser.addoption("--videos", action="store_true", default=False)
     parser.addoption("--screenresolution", action="store", default="1366x768x24")
@@ -59,7 +59,7 @@ def pytest_runtest_makereport(item):
 def browser(request):
 
     def finalizer():
-        #Finalizer with screenshot on error
+        # Finalizer with screenshot on error
         logger.info('Running browser Teardown')
         if request.node.rep_call.failed:
             logger.warning('Found failed test, trying to add screenshot')
@@ -75,7 +75,7 @@ def browser(request):
                 logger.warning('Could not add screenshot')
         driver.quit()
         logger.info("===> Test {} finished".format(test_name))
-    #Read command line parameters
+    # Read command line parameters
     browser = request.config.getoption('--browser')
     timeout = request.config.getoption('--timeout')
     selenoid = not(request.config.getoption('--no_selenoid'))
@@ -84,7 +84,7 @@ def browser(request):
     videos = request.config.getoption('--videos')
     url = request.config.getoption('--url')
     resolution = request.config.getoption('--screenresolution')
-    #Init logging and driver
+    # Init logging and driver
     driver = None
     logger = logging.getLogger('BrowserLogger')
     test_name = request.node.name

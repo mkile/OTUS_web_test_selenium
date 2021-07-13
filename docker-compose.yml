@@ -1,28 +1,70 @@
 version: "3.7" # https://docs.docker.com/compose/compose-file/
 
 services:
-  py_server_db:
-#    image: py_server
-    container_name: py_server_db
-    build:
-      context: py_server_db
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+# Opencart
+  mariadb:
+    image: docker.io/bitnami/mariadb:10.3
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MARIADB_USER=bn_opencart
+      - MARIADB_DATABASE=bitnami_opencart
+    volumes:
+      - 'mariadb_data:/bitnami/mariadb'
     networks:
       - test_net
+  opencart:
+    image: docker.io/bitnami/opencart:3
+    ports:
+      - '80:8080'
+      - '443:8443'
+    environment:
+      - OPENCART_HOST=localhost
+      - OPENCART_DATABASE_HOST=mariadb
+      - OPENCART_DATABASE_PORT_NUMBER=3306
+      - OPENCART_DATABASE_USER=bn_opencart
+      - OPENCART_DATABASE_NAME=bitnami_opencart
+      - ALLOW_EMPTY_PASSWORD=yes
     volumes:
-      - test_vol:/app
+      - 'opencart_data:/bitnami/opencart'
+      - 'opencart_storage_data:/bitnami/opencart_storage/'
+    depends_on:
+      - mariadb
+    networks:
+      - test_net
+# Selenoid
+  selenoid:
+    networks:
+      - test_net
+    image: aerokube/selenoid:latest-release
+    volumes:
+      - "./selenoid_config:/etc/selenoid"
+    environment:
+      - OVERRIDE_VIDEO_OUTPUT_DIR=/path/to/config/video
+    command: [ "-conf", "/etc/selenoid/browsers.json", "-video-output-dir", "/opt/selenoid/video", "-log-output-dir", "/opt/selenoid/logs", "-container-network", "test_net" ]
+    ports:
+      - "4444:4444"
+  selenoid-ui:
+    image: "aerokube/selenoid-ui"
+    networks:
+      - test_net
+    links:
+      - selenoid
+    depends_on:
+      - selenoid
+    ports:
+      - "8090:8080"
+    command: ["--selenoid-uri", "http://selenoid:4444"]
 
   tests:
 #    image: py_server_tests
-    container_name: py_server_tests
+    container_name: web_test_python
     build:
-      context: tests
+      context: web_test_python
       dockerfile: Dockerfile
-    command: pytest -v --url http://py_server_db:8080
+#    command: pytest -v --url http://opencart:8080
     depends_on:
-      - py_server_db
+      - opencart
+      - selenoid
     networks:
       - test_net
 
@@ -31,3 +73,6 @@ networks:
 
 volumes:
   test_vol:
+  opencart_data:
+  opencart_storage_data:
+  mariadb_data:
