@@ -65,6 +65,8 @@ services:
       context: web_test_python
       dockerfile: Dockerfile
 #    command: pytest -v --url http://opencart:8080
+    volumes:
+      - "./allure-results:/app/allure-results"
     depends_on:
       - opencart
       - selenoid
